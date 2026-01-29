@@ -14,15 +14,14 @@ jobs:
 
     steps:
       - name: Extract Jira issue key
-        id: extract
         run: |
           TITLE="${{ github.event.issue.title }}"
+
           if [ -z "$TITLE" ]; then
             TITLE="${{ github.event.pull_request.title }}"
           fi
 
           ISSUE_KEY=$(echo "$TITLE" | grep -oE '[A-Z]+-[0-9]+' || true)
-
           echo "ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
 
       - name: Stop if no Jira key
@@ -35,6 +34,7 @@ jobs:
       - name: Get comment body
         run: |
           COMMENT="${{ github.event.comment.body }}"
+
           if [ -z "$COMMENT" ]; then
             COMMENT="${{ github.event.review.body }}"
           fi
@@ -48,5 +48,21 @@ jobs:
           curl -u "${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
           -X POST \
           -H "Content-Type: application/json" \
-          --data "{\"body\": \"GitHub comment: $COMMENT\"}" \
+          --data "{
+            \"body\": {
+              \"type\": \"doc\",
+              \"version\": 1,
+              \"content\": [
+                {
+                  \"type\": \"paragraph\",
+                  \"content\": [
+                    {
+                      \"type\": \"text\",
+                      \"text\": \"GitHub PR comment: $COMMENT\"
+                    }
+                  ]
+                }
+              ]
+            }
+          }" \
           "${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/$ISSUE_KEY/comment"
