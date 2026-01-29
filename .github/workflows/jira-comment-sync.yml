@@ -7,6 +7,8 @@ on:
     types: [created]
   pull_request_review:
     types: [submitted]
+  pull_request:
+    types: [closed]
 
 jobs:
   sync-comment:
@@ -39,6 +41,11 @@ jobs:
             COMMENT="${{ github.event.review.body }}"
           fi
 
+          # If PR merged, generate merge comment
+          if [ -z "$COMMENT" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+            COMMENT="PR #${{ github.event.pull_request.number }} merged into ${{ github.event.pull_request.base.ref }}"
+          fi
+
           echo "COMMENT<<EOF" >> $GITHUB_ENV
           echo "$COMMENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -58,7 +65,7 @@ jobs:
                   \"content\": [
                     {
                       \"type\": \"text\",
-                      \"text\": \"GitHub PR comment: $COMMENT\"
+                      \"text\": \"GitHub PR update: $COMMENT\"
                     }
                   ]
                 }
