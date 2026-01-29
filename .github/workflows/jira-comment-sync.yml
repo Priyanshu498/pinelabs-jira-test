@@ -3,22 +3,48 @@ name: Sync PR comments to Jira
 on:
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
 
 jobs:
   sync-comment:
     runs-on: ubuntu-latest
-    steps:
-      - name: Send comment to Jira
-        run: |
-          ISSUE_KEY=$(echo "${{ github.event.issue.title }}" | grep -oE '[A-Z]+-[0-9]+' || true)
 
+    steps:
+      - name: Extract Jira issue key
+        id: extract
+        run: |
+          TITLE="${{ github.event.issue.title }}"
+          if [ -z "$TITLE" ]; then
+            TITLE="${{ github.event.pull_request.title }}"
+          fi
+
+          ISSUE_KEY=$(echo "$TITLE" | grep -oE '[A-Z]+-[0-9]+' || true)
+
+          echo "ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
+
+      - name: Stop if no Jira key
+        run: |
           if [ -z "$ISSUE_KEY" ]; then
             echo "No Jira key found"
             exit 0
           fi
 
+      - name: Get comment body
+        run: |
           COMMENT="${{ github.event.comment.body }}"
+          if [ -z "$COMMENT" ]; then
+            COMMENT="${{ github.event.review.body }}"
+          fi
 
+          echo "COMMENT<<EOF" >> $GITHUB_ENV
+          echo "$COMMENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Send comment to Jira
+        run: |
           curl -u "${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
           -X POST \
           -H "Content-Type: application/json" \
