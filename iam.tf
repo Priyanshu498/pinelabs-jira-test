@@ -32,6 +32,8 @@ resource "aws_iam_role" "jenkins_controller_role" {
     }
   )
 
+}
+
 # SSM Managed Instance Core (for Session Manager)
 
 resource "aws_iam_role_policy_attachment" "controller_ssm_core" {
@@ -147,6 +149,26 @@ resource "aws_iam_role_policy" "controller_ec2_policy" {
         Effect   = "Allow"
         Action   = "iam:PassRole"
         Resource = var.iam_passrole_arn
+      },
+      {
+        Sid    = "IAMDescribe"
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole",
+          "iam:GetPolicy",
+          "iam:GetUser",
+          "iam:GetGroup",
+          "iam:ListRoles",
+          "iam:ListPolicies",
+          "iam:ListUsers",
+          "iam:ListGroups",
+          "iam:ListAttachedRolePolicies",
+          "iam:ListRolePolicies",
+          "iam:ListInstanceProfiles",
+          "iam:GetInstanceProfile",
+          "iam:GetRolePolicy"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -330,6 +352,7 @@ resource "aws_iam_role_policy" "agent_ecr_policy" {
   })
 
 }
+
 resource "aws_iam_instance_profile" "jenkins_agent_profile" {
 
   name = var.jenkins_agent_instance_profile_name
@@ -337,3 +360,4 @@ resource "aws_iam_instance_profile" "jenkins_agent_profile" {
   role = aws_iam_role.jenkins_agent_role.name
 
 }
+
